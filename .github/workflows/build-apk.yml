@@ -1,0 +1,43 @@
+
+name: Build Bubble Shooter APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Extract project
+        run: |
+          mkdir extracted
+          tar -xzf bubbleshooter_mod_menu_source_with_github_build.tar.gz -C extracted
+          PROJECT_DIR="$(dirname "$(find extracted -name pubspec.yaml -print -quit)")"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          rm -f "$PROJECT_DIR/android/local.properties"
+
+      - name: Install dependencies
+        run: cd "$PROJECT_DIR" && flutter pub get
+
+      - name: Build APK
+        run: cd "$PROJECT_DIR" && flutter build apk --debug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bubble-shooter-debug-apk
+          path: ${{ env.PROJECT_DIR }}/build/app/outputs/flutter-apk/app-debug.apk
+          
